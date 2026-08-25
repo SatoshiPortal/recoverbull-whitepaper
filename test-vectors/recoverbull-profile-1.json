@@ -1,0 +1,42 @@
+{
+  "profile": "RecoverBull Reference Profile 1",
+  "bip85_legacy_unhardened": {
+    "mnemonic": "zoo zoo zoo zoo zoo zoo zoo zoo zoo zoo zoo wrong",
+    "passphrase": "",
+    "full_path": "m/83696968'/1608'/0'/586053381",
+    "stored_path": "m/1608'/0'/586053381",
+    "index": 586053381,
+    "mode": "LegacyUnhardened",
+    "backup_key_first_32_bytes": "151a5a41f5eac5d49e67e0fad0bddd3beebe0f0e4b7739435997506cf12d9fce"
+  },
+  "bip85_hardened": {
+    "mnemonic": "zoo zoo zoo zoo zoo zoo zoo zoo zoo zoo zoo wrong",
+    "passphrase": "",
+    "full_path": "m/83696968'/1608'/0'/632486385'",
+    "stored_path": "1608'/0'/632486385'",
+    "index": 632486385,
+    "mode": "Hardened",
+    "backup_key_first_32_bytes": "32255e6651db67fa5b5a44240b6a5d2189cb58666bcc3830c35aff5a2b01b84f"
+  },
+  "password_profile": {
+    "password": "correct horse battery staple",
+    "password_encoding": "UTF-8",
+    "normalization": "none",
+    "salt_hex": "000102030405060708090a0b0c0d0e0f",
+    "argon2id": { "version": "1.3", "t": 2, "m_kib": 19456, "p": 1, "output_bytes": 64 },
+    "derived_64_bytes_hex": "c948a1912c7c128e9156e3a94722a5366e6c62f33a082f77f46eb57bc1bad034420feff9f780f2b13b889f7a6dcf263da5a4310898aa51ff4de932e6a0adcd11",
+    "authentication_key_hex": "c948a1912c7c128e9156e3a94722a5366e6c62f33a082f77f46eb57bc1bad034",
+    "encryption_key_hex": "420feff9f780f2b13b889f7a6dcf263da5a4310898aa51ff4de932e6a0adcd11",
+    "plaintext": "recoverbull profile 1 vector",
+    "iv_hex": "f0f1f2f3f4f5f6f7f8f9fafbfcfdfeff",
+    "ciphertext_base64": "8PHy8/T19vf4+fr7/P3+//PfQzuwDrvrreu6EDCTFyqUGrLaNdzuRSfJDbgW+Y7dNSPd9F5dYnXadnDtXhXlMVU71mfOXfgu8pEnAwFhnIQ=",
+    "ciphertext_encoding": "base64(IV || ciphertext || HMAC)",
+    "ciphertext_hex": "f3df433bb00ebbebadebba103093172a941ab2da35dcee4527c90db816f98edd",
+    "hmac_hex": "3523ddf45e5d6275da7670ed5e15e531553bd667ce5df82ef291270301619c84"
+  },
+  "server_hashes": {
+    "identifier_hex": "0102030405060708090a0b0c0d0e0f101112131415161718191a1b1c1d1e1f20",
+    "secret_id_hex": "691e0b2c35b4e12b039fcb7bfb854ceb33175db0cfe38bf05c0dc02e75347ca8",
+    "attempts_id_hash_hex": "ae216c2ef5247a3782c135efa279a3e4cdc61094270f5d2be58c6204b7a612c9"
+  }
+}

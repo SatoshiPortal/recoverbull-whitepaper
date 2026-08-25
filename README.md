@@ -2,15 +2,17 @@
 
 By Francis Pouliot and Jules Azad Emery
 
-Version 1.0.0 - last updated on March 22 2025
+Version 1.0.0 - last updated on August 24 2026
   
 ## Abstract
 
 
-*Bitcoin grants its users property rights over their money which can be asserted and enforced without relying on a trusted third party, as well as the ability to make peer-to-peer censorship-resistant payments with a high degree of anonymity. These properties emerge as a consequence of the user’s ability to generate and store the cryptographic keys required to create valid Bitcoin transactions, a process known as “self-custody”. In this paper, we highlight the many risks associated with self-custody of Bitcoin, particularly the loss or theft of Bitcoin private keys. We propose that the severity of these risks is a leading factor in a large and growing number of users choosing to interface with Bitcoin via third-party intermediaries that hold Bitcoin and make Bitcoin transactions on their behalf, commonly called “custodial wallets”. By using these intermediaries, users delegate the responsibility of securing access to their private keys to professional service providers, but they no longer benefit from Bitcoin’s core value proposition of self-sovereignty, censorship-resistance and privacy, in addition to exposing themselves to additional custody risks. In this paper, we develop a threat model that systematically reviews the risks associated specifically with creating backup copies of Bitcoin private keys. We propose a protocol for encrypting Bitcoin private key backups as well as software architecture specifications for its implementation. This software architecture for the reference implementation leverages cryptography techniques for encrypting private key backups, the use of commercial cloud storage providers for storing these backups, and a specialized service to host copies of encryption keys required to decrypt these backups. The protocol is designed to minimize single points of failure, preserve user anonymity and protect users against sophisticated attackers with state-level resources, for which a threat model is proposed. The protocol and reference implementation software are open-sourced under the permissive MIT license.*
+*Bitcoin grants its users property rights over their money which can be asserted and enforced without relying on a trusted third party, as well as the ability to make peer-to-peer censorship-resistant payments with a high degree of anonymity. These properties emerge as a consequence of the user’s ability to generate and store the cryptographic keys required to create valid Bitcoin transactions, a process known as “self-custody”. In this paper, we highlight the many risks associated with self-custody of Bitcoin, particularly the loss or theft of Bitcoin private keys. We propose that the severity of these risks is a leading factor in a large and growing number of users choosing to interface with Bitcoin via third-party intermediaries that hold Bitcoin and make Bitcoin transactions on their behalf, commonly called “custodial wallets”. By using these intermediaries, users delegate the responsibility of securing access to their private keys to professional service providers, but they no longer benefit from Bitcoin’s core value proposition of self-sovereignty, censorship-resistance and privacy, in addition to exposing themselves to additional custody risks. In this paper, we develop a threat model that systematically reviews the risks associated specifically with creating backup copies of Bitcoin private keys. We propose a protocol for encrypting Bitcoin private key backups as well as software architecture specifications for its implementation. This software architecture for the reference implementation leverages cryptography techniques for encrypting private key backups, the use of commercial cloud storage providers for storing these backups, and a specialized service to host copies of encryption keys required to decrypt these backups. The protocol is designed to minimize single points of failure, minimize data collection, and provide conditional pseudonymity dependent on routing and deployment; sophisticated state-level attackers are analyzed in the threat model, not universally excluded by the protocol. The protocol and reference implementation software are open-sourced under the permissive MIT license.*
 
 - Server reference implementation: https://github.com/SatoshiPortal/recoverbull-server
 - Client reference implementation: https://github.com/SatoshiPortal/recoverbull-client-dart
+
+The normative interoperability reference for the existing implementation is [`SPECIFICATION.md`](SPECIFICATION.md), RecoverBull Reference Profile 1.
  
 ## Introduction to Bitcoin wallet backups
 
@@ -105,7 +107,7 @@ Some physical backup medium manufacturers have created products which help mitig
 
 #### Insecure BIP39 passphrase
 
-If a malicious actor gains access to the mnemonic, they cannot access the funds without the passphrase. This effectively creates a 2-of-2 backup, where two parts of a secret need to be combined to recover the funds.
+If a malicious actor gains access to the mnemonic, they cannot access the funds without the passphrase. Both artifacts are required for recovery, but this is not threshold secret sharing.
 
 In practice, however, it is very hard for users to implement this strategy securely.
 
@@ -138,9 +140,9 @@ The fundamental premise and design goals of this protocol are as follows:
 
 -   Bitcoins users can be uneducated, unwise, unmotivated, unskilled or incompetent. This should not preclude them from being able to backup their Bitcoin wallets securely.
     
--   Anonymity is inseparable from security. Any service or protocol that handles Bitcoin wallet backups should prioritize anonymity. Any information revealed by a Bitcoin user, including merely the fact that he owns Bitcoin, can be used against him by an attacker.
+-   Privacy and pseudonymity are inseparable from security. Any service or protocol that handles Bitcoin wallet backups should minimize information that could expose a user. Any information revealed by a Bitcoin user, including merely the fact that they own Bitcoin, can be used against them by an attacker. Recoverbull provides conditional pseudonymity, not a universal anonymity guarantee; its effectiveness depends on routing and deployment.
     
--   A backup process should be easy to complete in less than 5 minutes and maintain its security and anonymity regardless of the location or device of the end user.
+-   A backup process should be easy to complete in less than 5 minutes without weakening its security or data-minimization goals, regardless of the location or device used. The degree of pseudonymity still depends on the user's device, routing, and deployment.
     
 -   Any service whose function is to facilitate Bitcoin wallet backups should avoid ever taking possession of user private keys, encrypted or otherwise, to avoid being classified as a money transmission service or virtual asset service provider.
     
@@ -167,7 +169,7 @@ We keep these principles in mind when designing our Bitcoin wallet backup protoc
     
 -   The `Client` generates a BIP39 mnemonic seed, henceforth referred to as `Mnemonic`.
     
--   The `Client` derives entropy from the mnemonic using BIP85. This entropy is referred to as the `Backup key`.
+-   The `Client` obtains a BIP85-derived `Backup key` (see the exact path in [`SPECIFICATION.md`](SPECIFICATION.md)).
     
 -   The `Client` encrypts the `Mnemonic` using the `Backup key` as the encryption key using AES. This creates the `Encrypted backup`.
     
@@ -183,15 +185,9 @@ We keep these principles in mind when designing our Bitcoin wallet backup protoc
     
 -   The `Client` generates the `Backup file` which contains the `Identifier` and `salt` and `Ciphertext`
 
-> At this stage, the `client` has a local copy of the `Backup file`
-> which contains the `Encrypted backup`. The `client` also has the
-> `Backup key` which can decrypt the `Encrypted backup` to obtain the
-> `Mnemonic`. 
+> At this stage, the `client` has a local copy of the `Backup file` which contains the `Encrypted backup`. The `client` also has the `Backup key` which can decrypt the `Encrypted backup` to obtain the `Mnemonic`.
 > 
-> The user can have the option to export the `Backup file` as well as
-> the `Backup key` and store them independently in a custom location
-> however he wishes. However, we assume that the user wants to continue
-> with the Recoverbull Protocol.
+> The user can have the option to export the `Backup file` as well as the `Backup key` and store them independently in a custom location however he wishes. However, we assume that the user wants to continue with the Recoverbull Protocol.
 
  -   The `Client` requests that the user create a `Password`. The Recoverbull protocol is designed specifically for this Password to be memorable, therefore weak. The Bull Bitcoin Wallet implementation of the Recoverbull protocol requires a minimum 6 digit Password that is not found in a public list of the 1000 most common passwords.
     
@@ -202,16 +198,7 @@ We keep these principles in mind when designing our Bitcoin wallet backup protoc
     
  -   The `Client` encrypts the `Backup key` using `Encryption Key`.
 
-> If only the Key Server database is compromised, the encryption
-> effectively remains 128 bits strong due to the randomized salt.
-> However, if an attacker also gains access to the Backup file
-> containing that Salt, the overall security is reduced to the
-> (potentially weak) Password itself, making brute-force attacks
-> feasible. The Recoverbull protocol does not depend on this encryption
-> as part of its core security model. However, if the user chooses a
-> sufficiently strong Password, encrypting the Backup key not only
-> avoids any negative tradeoff but also adds a layer of protection
-> against the previously mentioned attacks.
+> If only the Key Server database is compromised, the encryption effectively remains 128 bits strong due to the randomized salt. However, if an attacker also gains access to the Backup file containing that Salt, the overall security is reduced to the (potentially weak) Password itself, making brute-force attacks feasible. The Recoverbull protocol does not depend on this encryption as part of its core security model. However, if the user chooses a sufficiently strong Password, encrypting the Backup key not only avoids any negative tradeoff but also adds a layer of protection against the previously mentioned attacks.
 
  -   The `client` makes a store request to the `Key Server` with
      - `Identifier`
@@ -227,14 +214,10 @@ We keep these principles in mind when designing our Bitcoin wallet backup protoc
     -  `Time`
     - `Encrypted Backup Key`
 
--   The `Key Server` service should be rebooted daily to wipe Identifiers from the memory
+-   The `Key Server` performs a logical internal wipe of rate-limit state. No daily reboot is required; the reference deployment is single-instance, and a restart resets the budget and should be exceptional.
     
 
-> The whole point of the Recoverbull protocol is that the user can now
-> store the Backup file in an otherwise insecure location such as a
-> cloud storage provider. This part of the protocol can be implemented
-> by the client in any way they choose. The following is an example from
-> the Bull Bitcoin implementation.
+> The whole point of the Recoverbull protocol is that the user can now store the Backup file in an otherwise insecure location such as a cloud storage provider. This part of the protocol can be implemented by the client in any way they choose. The following is an example from the Bull Bitcoin implementation.
 
 -   The `Client` requests access to the user’s cloud storage account.
     
@@ -261,15 +244,7 @@ We keep these principles in mind when designing our Bitcoin wallet backup protoc
     
 -   The `Key Server` hashes the `Identifier` with the `Authentication key` to determine the `Key ID`.
 
-> The `Key Server` keeps the `Identifier` in memory to enforce rate
-> limiting of fetch requests targeting the same Identifier. This way,
-> someone that has obtained a copy of the `Backup file` cannot perform a
-> brute-force attack to obtain the `Encrypted Backup Key`. Note here
-> that while it would be better that the key server never receive any
-> information that could link an `Encrypted Backup Key` to a specific
-> `Backup file` it is necessary to prevent brute-forcing attacks, which
-> is why the `Key ID` is computed using the `Identifier` and the
-> `Authentication key` by  the `Key Server` instead of by the `Client`.
+> The `Key Server` keeps derived values in memory to enforce rate limiting of requests targeting the same backup. It does not retain the raw identifier as rate-limit state; it retains an identifier hash and derived candidate tags. This derived state allows the server to limit online brute-force attempts targeting the same backup under its rate-limit and availability assumptions. It does not prevent offline password testing when cloud and database artifacts are combined, and it does not protect against a malicious server. Although it would be preferable for the key server never to receive information that could link an `Encrypted Backup Key` to a specific `Backup file`, this online-control tradeoff is why the `Key ID` is computed from the `Identifier` and `Authentication key` by the `Key Server` rather than by the `Client`.
 
     
 -   If a record exists for the computed `Key ID`, the `Key Server` is satisfied that whoever made the request must have been in possession of both the `Password` as well as the `Backup file` and therefore will release the `Encrypted Backup Key` to the `Client`.
@@ -286,28 +261,30 @@ We keep these principles in mind when designing our Bitcoin wallet backup protoc
 
 ## Security model
 
+The Identifier should be generated randomly with sufficient entropy. Recoverbull provides conditional pseudonymity, dependent on routing and deployment; the exact BIP85 path and Backup File representation are described in [`SPECIFICATION.md`](SPECIFICATION.md).
+
 
 The security model relies on four critical components:
 
 -   Strong encryption
     
--   Segregated storage for a 2-of-2 backup
+-   Segregated storage of the two artifacts required for recovery
     
 -   Rate-limit fetch requests to the Key Server
     
--   User anonymity
+-   Conditional pseudonymity as a deployment goal
 
 The security model of the Recoverbull protocol relies on securely encrypting a wallet backup data with a strong encryption key that cannot be bruteforced. This encrypted data can be stored in a reliable but relatively insecure location, such as a cloud storage provider. Because the entropy generated to create the encryption key to encrypt the mnemonic is derived from the mnemonic itself, the odds of an attacker bruteforcing the encrypted backup is roughly the same as the attacker guessing the mnemonic.
 
-The main problem with strong encryption of a mnemonic is of course that the entropy of the encryption key is such that it cannot be remembered. The risk is that it will be lost, and that the backup cannot be decrypted. For this reason, we propose a free, anonymous and accountless narrow-purpose key management service, the Key Server.
+The main problem with strong encryption of a mnemonic is of course that the entropy of the encryption key is such that it cannot be remembered. The risk is that it will be lost, and that the backup cannot be decrypted. For this reason, we propose a narrow-purpose key management service designed for data minimization and accountless use, with conditional pseudonymity dependent on routing and deployment: the Key Server.
 
   
 
-Authentication with the Key Server is performed by the user with a password. Password bruteforcing is prevented by enforcing a strict limit at the Key Server level.
+Authentication with the Key Server is performed by the user with a password. Online brute-force attempts are limited by the Key Server under the server's single-instance and availability assumptions; this is not a guarantee against offline attacks or a malicious server.
 
   
 
-The user’s responsibility is to remember or store a password. The protocol is designed so that this password should be memorable and can be very weak. We expect that users are likely to choose the same 6 digit pin they use to unlock their mobile devices. This is fine, and is the whole point of the Recoverbull protocol. If users were able to generate and store bruteforce-resistant passwords by themselves, they could just use BIP39 passphrases.
+The user’s responsibility is to remember or store a password. The protocol is designed so that this password should be memorable and can be very weak. An attacker possessing both the cloud Backup File and the Key Server database can test password guesses offline, so security in this case depends on password entropy. We expect that users are likely to choose the same 6 digit pin they use to unlock their mobile devices. This is intentional, not a guarantee against collusion. If users were able to generate and store bruteforce-resistant passwords by themselves, they could just use BIP39 passphrases.
 
   
 
@@ -315,7 +292,7 @@ An attacker that gets access to an encrypted backup cannot access the backup wit
 
   
 
-The Key Server correctly enforcing rate-limit of fetch requests is the most critical component of the Recoverbull protocol. A Recoverbull server could decide whatever rate-limiting parameters it wants. Our recommendation is a limit of 3 attempts per day per identifier. While other methods of rate-limiting may be useful (for example to prevent ddos attacks) they are not strictly required. The reason the rate-limit is so critical is that we expect the password chosen by the user to be very weak.
+The Key Server correctly enforcing rate limits is the most critical component of the Recoverbull protocol. The budget counts distinct authentication candidates per identifier within a configurable window/cooldown, shared by `/fetch` and `/trash`. Replays add activity but not candidates, and success does not reset the counters. The reason this limit is critical is that we expect the password chosen by the user to be very weak. A targeted attacker can exhaust this budget and temporarily prevent recovery. This denial-of-service risk is an accepted tradeoff.
 
   
 
@@ -323,7 +300,7 @@ The most obvious attack vector for a secret storage in cloud storage is that a h
 
   
 
-User anonymity is also a critical component of the security model. The key server should neither collect nor store any information that may be able to identify the user. In case the key server database is compromised, or in case the key server is malicious, any personal information could lead to targeted attacks against the user. Emails and phone numbers can be traced to the legal identity of an end-user, revealing that the end-user is a Bitcoin holder. In addition, emails and phone numbers can be used for phishing attacks, sim swap attacks or password reset attacks on a user’s cloud provider. For this reason, the Recoverbull protocol does not allow for password reset mechanisms, unlike the Photon protocol.
+Conditional pseudonymity is also a critical component of the security model, not a universal anonymity guarantee. The key server should avoid collecting personal information, but derived identifier and candidate values plus consultative telemetry can still link activity. The protocol has no password reset mechanism, unlike the Photon protocol.
 
   
 
@@ -331,11 +308,11 @@ There is no reason for the Key Server to be able to communicate with users, exce
 
   
 
-The key server does not have any method of identifying where the encrypted backup may be stored. This is why the protocol specifies that the key server should wipe the identifier from memory on a daily basis. The identifier is used to enforce rate-limiting, but since rate-limiting is enforced on a daily basis, the key server does not need to have the identifier for longer than 1 day. The identifier is the only link between an encrypted backup key and a backup file. Without the identifier, there is no way to know whether or not a specific backup key belongs to a specific backup file.
+The key server does not have any protocol method of identifying where the encrypted backup may be stored. The single-instance reference server wipes its in-memory rate-limit and telemetry state globally every 24 hours; no daily reboot is required, and a restart resets budgets and is exceptional. Derived identifier and candidate values, together with consultative telemetry, are additional possible links between activity and a backup file; this is why pseudonymity is conditional.
 
   
 
-Even in the case of a legally binding request for information to obtain a backup key for a given backup file, the key server could not comply with that request, unless the user has performed a fetch request with the correct authentication key that same day.
+Even in the case of a legally binding request for information to obtain a backup key for a given backup file, the key server may be unable to identify the corresponding row from the backup file alone; this depends on available records, telemetry, and the timing of requests. The protocol makes no absolute claim about legal compliance.
 
   
   
@@ -346,7 +323,9 @@ Even in the case of a legally binding request for information to obtain a backup
 
 ### Rate limiting
 
-The Key Server must enforce rate limiting of fetch requests. This is what allows the user to select a weak password. If rate limiting is not properly enforced, an attacker who stole a backup file, can obtain the backup key by guessing the password. Rate limiting is also why the Key Server keeps the identifier of a backup file in memory for a short period of time. If the rate limit period is 24h, the Key Server must keep the identifier in memory for 24h. Combined with the derivation of an authentication key, rate limiting based on the backup file identifier is what allows the user to authenticate himself anonymous without traditional account-based authentication. Users must trust the Key Server to correctly enforce rate limiting of fetch requests. To verify that the Key Server is properly enforcing rate limiting, user can attempt multiple fetch requests for a given backup file with incorrect passwords.
+The Key Server must enforce rate limiting of distinct authentication candidates for both fetch and trash requests. This is what allows the user to select a weak password under the server assumptions. Rate-limit state contains derived values, not the raw identifier. The reference server is single-instance and logically wipes this in-memory state every 24 hours; expired entries may leave sooner and a restart resets budgets. Users must trust the Key Server to correctly enforce this control.
+
+The `/attempts` endpoint is optional and not required for Profile 1 recovery. A holder of the Backup File can recognize activity associated with its Identifier, but a compromised server may lie. Bull Wallet does not currently consume this telemetry.
 
 ### Server health check
 
@@ -369,11 +348,11 @@ The client should prompt the user to test the Recoverbull recovery flow at frequ
 
 ### Key deletion
 
-The Key Server should allow clients to request key deletion. This can be useful if a user suspects that the Backup File has been compromised.
+The Key Server should allow clients to request key deletion. This can be useful if a user suspects that the Backup File has been compromised. `/trash` removes the active database row only; it does not guarantee purging database logs, backups, replicas, snapshots, or other retained copies.
 
 ### Key Rotation
 
-Users can rotate their Backup Keys and Recovery Files at any time. This means in practice that they create a new Backup Key and a new Recovery File, and destroy their previous Recovery File. When doing so, if they have Social Recovery activated, the client must also send the new Backup Key to the Trusted Contact. The reason for key rotation is to protect the user in case the Key Server database is extracted and leaked. If such a leak happens, anyone with access to the Key Server database could attempt to gain access to the Secure Cloud Storage account of users in an attempt to find a Recovery File. Employees of the Secure Cloud Storage provider could also attempt this type of attack. By proposing Key Rotation on a frequent basis, the client can limit the user’s exposure to these types of attacks, especially when combined with Nostr alerts.
+Rotation is a conceptual recovery measure: create a new Backup Key and Backup File, then retire the old artifacts. It is not atomic, has no protocol rollback, and is not integrated into Bull Wallet. Social recovery is not integrated into Bull either.
 
   
 ## Addendum: Social backup protocol
@@ -403,7 +382,7 @@ The technique used by the Photon Protocol to mitigate the risk of the user forge
 -   PIN resetting requires the Key Server Operator to store personal details of the user and associate them to his Key ID. In the event that the Key Server's database was hacked or leaked or accessed by any malicious actor, this information would enable an attacker to conduct targeted attacks against the users’ cloud accounts to obtain the Encrypted Backup File and decrypt the Backup Secret using the Backup Keys stored by the Key Server. If the Key Server holds no identifying information on the user whatsoever, this risk is dramatically reduced.
      
 
-In addition, keeping personal information on users exposes the Key Server to law enforcement requests containing specific emails or phone numbers. For this reason, the Key Server should store no personal information whatsoever, including IP addresses.
+In addition, keeping personal information on users exposes the Key Server to law enforcement requests containing specific emails or phone numbers. For this reason, the Key Server should avoid account identifiers and unnecessary personal data; whether network metadata such as IP addresses is visible or retained depends on the deployment and routing.
 
   
 ### Social Recovery Protocol
@@ -469,11 +448,11 @@ Severity: medium
 
 #### Threat description
 
-A malicious Key Server has access to the user's Encrypted Backup Key, the user's Identifier, the user’s Authentication Key and the user's IP address. The attacker is the operator of the Key Server, running the service as a honey pot aiming to collect Backup Keys from its users, or an attacker which has taken control of the Key Server or has taken control of the Key Server’s domain and is running a Key Server under that domain.
+A malicious Key Server may observe the encrypted Backup Key, identifiers and authentication material presented by clients, and network metadata such as an IP address, depending on deployment. Tor or another proxy can hide the client IP from the Key Server. The attacker is the operator of the Key Server, running the service as a honeypot, or an attacker controlling the service or domain.
 
 #### Mitigation measures
 
-The Key Server does not have access to the user’s Backup File and therefore cannot gain access to the user’s Bitcoin wallet. In order for an attack by a Malicious Key server to be successful, the Malicious Key Server operator needs to access the Backup file of the user. The Malicious Key Server also does not have access to the user’s email address or the user’s phone number, and does not know which cloud storage provider the user is using, nor does it know where the backup file could be. Consequently, it cannot perform a targeted attack on the user’s cloud storage provider. In addition, the backup key held by the Key Server is encrypted using the Encryption key derived from the user’s password and the 128 bits salt
+The Key Server does not receive the mnemonic or normally possess the user’s cloud Backup File, but a malicious operator may retain request data and may combine it with other information. A successful theft attack would generally also require access to the Backup File or another recovery artifact. The protocol does not assume that the server lacks all contact or routing metadata, nor that it cannot correlate activity with a user under every deployment. The Backup Key held by the Key Server remains encrypted using the Encryption Key derived from the user’s password and the 128-bit salt.
 
 
 Likelihood: low
@@ -488,7 +467,7 @@ This scenario assumes that the key server database has fallen in the hands of an
   
 #### Mitigation measures
 
-Backup keys held by the key server are encrypted. However, we assume that the encryption password is weak and that they will be bruteforced. One measure clients and users can employ is frequent key rotation. The main purpose of key rotation is to guard agains this threat specifically. When performing a key rotation, the user will effectively delete his existing backup file and create a new backup file with a new encryption key. We assume that the key server database leak is a one-off event and that the new encryption key will not be found in the publicly leaked database. The user is in danger in between the time the database is leaked and the time an attacker has gained access to his backup file. Key rotation will not help if the attacker already had access to the backup file prior to a key server database leak.
+Backup keys held by the key server are encrypted. However, we assume that the encryption password is weak and that they may be bruteforced. As a conceptual future mitigation, a client could create a new Backup Key and Backup File and retire the old artifacts after a database leak. This rotation is not currently integrated into Bull, is not atomic, and has no protocol rollback. It may limit exposure if the leak is one-off and the attacker has not yet obtained the new Backup File, but it will not help if the attacker already had access to the Backup File before the database leak.
 
 Likelihood: low
 
@@ -509,7 +488,7 @@ The attacker does not know:
 -   Where the backup key is stored (locally or with a Key Server) and which Key Server is being used, if any.   
 -   The user’s password  
 
-The only useful piece of data that the cloud storage provider has is the identifier. In the case of an honest Key Server, the identifier is wiped from memory on a daily basis because it is only used for rate-limiting purposes.
+The cloud storage provider has the identifier and encrypted backup material; the Key Server may additionally expose derived values and consultative telemetry. In the case of an honest single-instance Key Server, its in-memory rate-limit state is logically wiped every 24 hours; a restart is exceptional and resets the budget.
  
 Having the identifier in plaintext in the backup file is a deliberate decision. We cannot encrypt the Backup file with the user’s encryption key before upload to the cloud storage provider, because an attacker that gets access to the encrypted backup file could brute-force the encryption key offline without rate-limiting and guess the user’s password, which would allow the attacker to fetch the encrypted backup key from the key server. If we wanted to encrypt the backup file, we would need a second password from the user, which increases burdens on the end-user.
   
@@ -528,17 +507,11 @@ The entity cannot decrypt the file, because it does not have the Backup Key. The
 
 #### Mitigation measures
 
-Although the Key Server that hosts the backup key for that Backup File could be fully anonymous, unincorporated or incorporated in a jurisdiction which grants him legal protection to refuse the request, we assume that the Key Server may be obliged to respond to the request.
+The Key Server operator may be subject to a request, but the protocol makes no promise about jurisdiction, legal protection, or legal compliance. Whether a request can be correlated to a particular backup depends on the available database, derived grouping and candidate values, telemetry, observed requests, and the retention practices of the server, especially if it is compromised or malicious.
 
-The Key Server only keeps the identifier of the backup file in memory for a short period of time.
+The Key Server stores the Key ID and the encrypted Backup Key. The Backup Key remains encrypted with the user's password-derived key, but a weak password offers limited protection when the cloud Backup File and its salt are also available: those artifacts permit offline password testing. The authentication key is derived on demand and is not intended for client-side storage; these properties do not prevent a server from retaining request data or lying about its records.
 
-The Key Server stores the Key ID and the Encrypted Backup Key. Without the Password or the Authentication key, the Key Server cannot comply with a request to provide a specific encrypted backup key. Unless a request is made to monitor any fetch request for the given identifier to share the corresponding Encrypted Backup Key. Without the authentication key, outside of the rate-limiting period, there is no other way for the Key Server to identify a specific backup file. The authentication key is never stored anywhere, and should not be made accessible to the user by a client for storage. It is generated on-the-fly by the user from the password every time the user makes a store or fetch request to the Key Server.
-
-Even if the Key Server did comply with such a request, in the event that the request is made during the rate-limiting period following a store or fetch request by the user, the backup key is encrypted with the user’s password. We assume this will offer little protection because the password is likely to be weak and therefore can be bruteforced.
-  
-As a result, it is very unlikely that the Key Server will be able to comply with a request to provide an encrypted backup for a specific backup file. The request would need to be made for every single backup key hosted by the Key Server, which is a request that the Key Server could more easily refuse. In addition, backup keys are encrypted with the user’s password strengthened by the 128 bits salt. This is likely not going to be effective for most users who’s backup file and salt would have been compromised but the encryption will still remain as strong as the password.
-
-In the event that the Key Server does decide to comply with a legal request to provide all the encrypted backup keys, a warrant canary can be used. When the warrant canary is removed, the client will detect it automatically once the user connects to the Key Server and can prompt the user to perform a key rotation.
+A warrant canary is best-effort signalling, not proof that a request has or has not occurred. Bull Wallet does not currently integrate guided rotation in response to canary changes, and rotation remains conceptual, non-atomic, and without protocol rollback.
 
 
 Likelihood: low
@@ -614,4 +587,3 @@ List of catastrophic scenarios which can lead the user to lose his wallet:
 -   Theft: the Key Server colludes with the cloud storage provider
     
 -   Theft: the Key Server and the Cloud Storage Providers are both compelled by the same legal authority to give up their entire databases.
-
